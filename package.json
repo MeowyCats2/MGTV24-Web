@@ -1,0 +1,18 @@
+{
+  "name": "mgtv24-web",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@types/express": "^5.0.0",
+    "discord-markdown-parser": "^1.1.0",
+    "discord.js": "^14.16.3",
+    "express": "^4.21.0",
+    "express-async-errors": "^3.1.1"
+  }
+}
