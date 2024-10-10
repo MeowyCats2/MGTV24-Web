@@ -300,7 +300,6 @@ const escapeHtml = (unsafe) => {
 }
 app.get('/post/:post', async (req, res) => {
   const message = await mgtvChannel.messages.fetch(req.params.post)
-  console.log(getHeading(message.content))
   const postData = await MessageASTNodes(parse(message.content, "extended"))
   res.send(generatePage(escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? "Post"))) ?? "Post", `<div><i>Written by <b>${message.author.displayName}</b> on <b>${message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "medium" })}</b></i><br />
     ${parseHeadings(postData)}
@@ -312,7 +311,14 @@ app.get('/post/:post', async (req, res) => {
   <h2>Other Recent Posts</h2>
     ${parsedMessages.slice(0, 50).join("")}<br/><a href="/?page=2">See more</a>`, `<meta property="og:title" content="${escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? "Post"))) ?? "Post"}">
     <meta property="og:description" content="${escapeHtml(await MessageASTNodesPlaintext(parse(message.content)))}">
-    <meta property="og:site_name" content="MGTV24 Web &bull; ${parsedMessages.length} articles">`))
+    <meta property="og:site_name" content="MGTV24 Web &bull; ${parsedMessages.length} articles">
+    <link type="application/json+oembed" href="/post/${req.params.post}/oembed.json" />`))
+})
+app.get('/post/:post/oembed.json', async (req, res) => {
+  const message = await mgtvChannel.messages.fetch(req.params.post)
+  res.send({
+    "author_name": message.author.displayName + " \u2022 " + message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "medium" })
+  })
 })
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
