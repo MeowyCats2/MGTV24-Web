@@ -312,7 +312,7 @@ app.get('/post/:post', async (req, res) => {
     ${parsedMessages.slice(0, 50).join("")}<br/><a href="/?page=2">See more</a>`, `<meta property="og:title" content="${escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? "Post"))) ?? "Post"}">
     <meta property="og:description" content="${escapeHtml(await MessageASTNodesPlaintext(parse(message.content)))}">
     <meta property="og:site_name" content="MGTV24 Web &bull; ${parsedMessages.length} articles">
-    <link type="application/json+oembed" href="/post/${req.params.post}/oembed.json" />`))
+    <link type="application/json+oembed" href="https://${req.get("host")}/post/${req.params.post}/oembed.json" />`))
 })
 app.get('/post/:post/oembed.json', async (req, res) => {
   const message = await mgtvChannel.messages.fetch(req.params.post)
