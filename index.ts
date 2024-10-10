@@ -195,7 +195,7 @@ const MessageSingleASTNodePlaintext = async (node) => {
       case 'underline':
       case 'strikethrough':
       case 'spoiler':
-        return node.content;
+        return typeof node.content === "string" ? node.content : await MessageASTNodesPlaintext(node.content);
 
       case 'br':
       case 'newline':
@@ -230,7 +230,7 @@ const MessageSingleASTNodePlaintext = async (node) => {
   
       case 'emoji':
       case 'twemoji':
-        return node.name;
+        return;
   
       case 'timestamp':
         return node.timestamp + " (" + node.format + ")"
@@ -311,7 +311,7 @@ app.get('/post/:post', async (req, res) => {
     ` : ""}</div>
   <h2>Other Recent Posts</h2>
     ${parsedMessages.slice(0, 50).join("")}<br/><a href="/?page=2">See more</a>`, `<meta property="og:title" content="${escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? "Post"))) ?? "Post"}">
-    <meta property="og:description" content="${escapeHtml(postData)}">
+    <meta property="og:description" content="${escapeHtml(await MessageASTNodesPlaintext(parse(message.content)))}">
     <meta property="og:site_name" content="MGTV24 Web &bull; ${parsedMessages.length} articles">`))
 })
 app.listen(port, () => {
