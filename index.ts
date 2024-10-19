@@ -6,7 +6,7 @@ import { parse } from 'discord-markdown-parser';
 import { Client, Events, GatewayIntentBits, TextChannel, Message } from "discord.js";
 
 // Create a new client instance
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 
 // When the client is ready, run this code (only once).
 // The distinction between `client: Client<boolean>` and `readyClient: Client<true>` is important for TypeScript developers.
@@ -17,22 +17,6 @@ client.once(Events.ClientReady, readyClient => {
 
 // Log in to Discord with your client's token
 await client.login(process.env.token);
-
-const mgtvChannel: TextChannel = (await client.channels.fetch("1217494766397296771") as TextChannel)
-const messages: Message[] = [];
-let before = null;
-while (1) {
-    const newMessages = await mgtvChannel.messages.fetch({
-        limit: 100,
-        before
-    })
-    if (newMessages.size === 0) break;
-    messages.unshift(...[...newMessages.values()]);
-    console.log("before: " + before)
-    before = ([...newMessages.values()] as Message[]).at(-1)!.id;
-}
-const sortedMessages = messages.sort((a, b) => b.createdTimestamp - a.createdTimestamp)
-console.log("done!")
 
 const MessageASTNodes = async (nodes) => {
     if (Array.isArray(nodes)) {
@@ -273,6 +257,15 @@ const parseHeadings = (content: String) => content.replaceAll(/(\n|^)\s*#\s(.+?)
 const getHeading = (content: String) => content.match(/^#\s(.+?)$/m)?.[1]
 const app = express()
 app.use("/static", express.static("static"))
+
+client.on(Events.MessageCreate, async message => {
+  if (message.channel.id !== mgtvChannel.id) return
+  await setupMessages()
+})
+client.on(Events.MessageUpdate, async message => {
+  if (message.channel.id !== mgtvChannel.id) return
+  await setupMessages()
+})
 const generateRSSList = async (req) => {
   const parsedMessages = []
   for (const message of sortedMessages) {
@@ -299,7 +292,28 @@ const generatePostList = async () => {
   }
   return parsedMessages
 }
-const parsedMessages = await generatePostList()
+const mgtvChannel: TextChannel = (await client.channels.fetch("1217494766397296771") as TextChannel)
+let messages: Message[] = [];
+let parsedMessages: String[] = []
+let sortedMessages: Message[] = []
+const setupMessages = async () => {
+  messages = [];
+  let before = null;
+  while (1) {
+    const newMessages = await mgtvChannel.messages.fetch({
+        limit: 100,
+        before
+    })
+    if (newMessages.size === 0) break;
+    messages.unshift(...[...newMessages.values()]);
+    console.log("before: " + before)
+    before = ([...newMessages.values()] as Message[]).at(-1)!.id;
+  }
+  sortedMessages = messages.sort((a, b) => b.createdTimestamp - a.createdTimestamp)
+  parsedMessages = await generatePostList()
+  console.log("done!")
+}
+await setupMessages()
 const port = 3000
 app.get('/', async (req, res) => {
   res.send(generatePage("News List", parsedMessages.slice(+(req.query.page ?? 1) * 50 - 50, +(req.query.page ?? 1) * 50).join("") + `<br />${+req.query.page! > 1 ? `<a href="/?page=${+req.query.page! - 1}">Previous Page</a> ` : ""}<a href="/?page=${+(req.query.page ?? 1) + 1}">Next Page</a>`, `<meta property="og:title" content="News List">
