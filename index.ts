@@ -267,10 +267,10 @@ client.on(Events.MessageUpdate, async message => {
   await setupMessages()
 })
 const generateRSSList = async (req) => {
-  const parsedMessages = []
+  const handledMessages = []
   for (const message of sortedMessages) {
     const date = message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "medium" })
-    parsedMessages.push(`<item>
+    handledMessages.push(`<item>
       <title>${escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? date))) ?? date}</title>
       <link>https://${req.get("host")}/post/${message.id}</link>
       <description>${parseHeadings(await MessageASTNodes(parse(message.content, "extended")))}</description>
@@ -278,19 +278,19 @@ const generateRSSList = async (req) => {
       <guid>${message.id}</guid>
     </item>`)
   }
-  return parsedMessages
+  return handledMessages
 }
 const generatePostList = async () => {
-  const parsedMessages = []
+  const handledMessages = []
   for (const message of sortedMessages) {
-    parsedMessages.push(`<div class="newsPost">
+    handledMessages.push(`<div class="newsPost">
       <i>Written by <b>${message.author.displayName}</b> on <b>${message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "medium" })}</b></i><br />
       ${parseHeadings(await MessageASTNodes(parse(message.content, "extended")))}<br/><br/>
       ${message.attachments.size ? message.attachments.size + " attachments<br />" : ""}
       <a href="/post/${message.id}">Link to post for sharing</a>
     </div>`)
   }
-  return parsedMessages
+  return handledMessages
 }
 const mgtvChannel: TextChannel = (await client.channels.fetch("1217494766397296771") as TextChannel)
 let messages: Message[] = [];
