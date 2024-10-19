@@ -1,6 +1,6 @@
 body {
     font-family: sans-serif;
-    margin: 1rem;
+    margin: 0;
     background: #000033;
 }
 
@@ -9,12 +9,14 @@ main {
     flex-direction: column;
     align-items: center;
     color: white;
+    margin: 1rem;
 }
 
 header {
     color: white;
     text-align: center;
     font-size: 2rem;
+    margin-top: 1rem;
 }
 .newsPost {
     border: 1px solid #000022;
@@ -40,4 +42,21 @@ header {
 .attachment {
     flex-grow: 1;
     width: 0;
+}
+
+footer {
+    background: gray;
+    color: white;
+    text-align: center;
+    position: absolute;
+    width: 100%;
+    padding: 0.5rem;
+    box-sizing: border-box;
+}
+footer a {
+    color: white;
+}
+
+.footerSpacing {
+    height: 5rem;
 }

@@ -245,11 +245,12 @@ const MessageSingleASTNodePlaintext = async (node) => {
     }
   }
   
-const generatePage = (title: string, content: string, meta: string) => `<!DOCTYPE html>
+const generatePage = (title: string, content: string, meta: string, req) => `<!DOCTYPE html>
 <html>
     <head>
         <title>${title} - MGTV24 News</title>
         <link rel="stylesheet" href="/static/styles.css">
+        <link rel="alternate" type="application/rss+xml" title="MGTV24 RSS Feed" href="https://${req.get("host")}/feed.rss">
         ${meta}
     </head>
     <body>
@@ -263,12 +264,29 @@ const generatePage = (title: string, content: string, meta: string) => `<!DOCTYP
         <main>
             ${content}
         </main>
+        <footer>
+          <a href="/feed.rss">RSS Feed</a>
+        </footer>
     </body>
 </html>`
 const parseHeadings = (content: String) => content.replaceAll(/(\n|^)\s*#\s(.+?)(<br \/>|$)/gs, "<h1>$2</h1>")
 const getHeading = (content: String) => content.match(/^#\s(.+?)$/m)?.[1]
 const app = express()
 app.use("/static", express.static("static"))
+const generateRSSList = async (req) => {
+  const parsedMessages = []
+  for (const message of sortedMessages) {
+    const date = message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "medium" })
+    parsedMessages.push(`<item>
+      <title>${escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? date))) ?? date}</title>
+      <link>https://${req.get("host")}/post/${message.id}</link>
+      <description>${parseHeadings(await MessageASTNodes(parse(message.content, "extended")))}</description>
+      <pubDate>${message.createdAt.toLocaleString("en-GB", { timeZone: "Etc/UTC", weekday: "short", year: "numeric", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", second: "2-digit", timeZoneName: "shortGeneric"}).replace("at ", "")}</pubDate>
+      <guid>${message.id}</guid>
+    </item>`)
+  }
+  return parsedMessages
+}
 const generatePostList = async () => {
   const parsedMessages = []
   for (const message of sortedMessages) {
@@ -286,14 +304,14 @@ const port = 3000
 app.get('/', async (req, res) => {
   res.send(generatePage("News List", parsedMessages.slice(+(req.query.page ?? 1) * 50 - 50, +(req.query.page ?? 1) * 50).join("") + `<br />${+req.query.page! > 1 ? `<a href="/?page=${+req.query.page! - 1}">Previous Page</a> ` : ""}<a href="/?page=${+(req.query.page ?? 1) + 1}">Next Page</a>`, `<meta property="og:title" content="News List">
 <meta property="og:description" content="Start reading MGTV24 news articles online today.">
-<meta property="og:site_name" content="MGTV24 Web &bull; ${parsedMessages.length} articles">`))
+<meta property="og:site_name" content="MGTV24 Web &bull; ${parsedMessages.length} articles">`, req))
 })
 app.get('/search', async (req, res) => {
   if (!req.query.query) return res.redirect("/")
   const results = parsedMessages.filter(data => data.replaceAll(/(<br \/>|^)\s*<i>.+?<\/i>/gs, "").toLowerCase().replaceAll(/\s/g, "").includes(req.query.query!.toLowerCase().replaceAll(/\s/g, "")))
   res.send(generatePage(`Search - ${req.query.query}`, `<span>${results.length} results</span>` + results.slice(+(req.query.page ?? 1) * 50 - 50, +(req.query.page ?? 1) * 50).join("") + `<br />${+req.query.page! > 1 ? `<a href="/search?query=${req.query.query}&page=${+req.query.page! - 1}">Previous Page</a> ` : ""}<a href="/?query=${req.query.query}&page=${+(req.query.page ?? 1) + 1}">Next Page</a>`, `<meta property="og:title" content="${req.query.query} - Search">
   <meta property="og:description" content="Find out the search results for ${req.query.query} today here at MGTV24 Web.">
-  <meta property="og:site_name" content="MGTV24 Web &bull; ${parsedMessages.length} articles">`))
+  <meta property="og:site_name" content="MGTV24 Web &bull; ${parsedMessages.length} articles">`, req))
 })
 const escapeHtml = (unsafe) => {
   return unsafe.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
@@ -312,7 +330,7 @@ app.get('/post/:post', async (req, res) => {
     ${parsedMessages.slice(0, 50).join("")}<br/><a href="/?page=2">See more</a>`, `<meta property="og:title" content="${escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? "Post"))) ?? "Post"}">
     <meta property="og:description" content="${escapeHtml(await MessageASTNodesPlaintext(parse(message.content)))}">
     <meta property="og:site_name" content="MGTV24 Web &bull; ${parsedMessages.length} articles">
-    <link type="application/json+oembed" href="https://${req.get("host")}/post/${req.params.post}/oembed.json" />`))
+    <link type="application/json+oembed" href="https://${req.get("host")}/post/${req.params.post}/oembed.json" />`, req))
 })
 app.get('/post/:post/oembed.json', async (req, res) => {
   const message = await mgtvChannel.messages.fetch(req.params.post)
@@ -320,6 +338,18 @@ app.get('/post/:post/oembed.json', async (req, res) => {
     "author_name": message.author.displayName + " \u2022 " + message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "medium" }),
     "author_url": "https://discord.com/channels/" + message.guild.id + "/" + message.channel.id + "/" + message.id
   })
+})
+app.get('/feed.rss', async (req, res) => {
+  res.send(`<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0">
+<channel>
+ <title>MGTV24</title>
+ <description>Bringing you news from the community.</description>
+ <link>https://${req.get("host")}</link>
+ <docs>https://www.rssboard.org/rss-specification</docs>
+ ${(await generateRSSList(req)).join("\n")}
+</channel>
+</rss>`)
 })
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
