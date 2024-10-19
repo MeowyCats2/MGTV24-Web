@@ -274,8 +274,8 @@ const generateRSSList = async (req) => {
       <title>${escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? date))) ?? date}</title>
       <link>https://${req.get("host")}/post/${message.id}</link>
       <description>${parseHeadings(await MessageASTNodes(parse(message.content, "extended")))}</description>
-      <pubDate>${message.createdAt.toLocaleString("en-GB", { timeZone: "Etc/UTC", weekday: "short", year: "numeric", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", second: "2-digit", timeZoneName: "shortGeneric"}).replace("at ", "")}</pubDate>
-      <guid>${message.id}</guid>
+      <pubDate>${message.createdAt.toUTCString()}</pubDate>
+      <guid isPermaLink="false">${message.id}</guid>
     </item>`)
   }
   return handledMessages
@@ -355,7 +355,7 @@ app.get('/post/:post/oembed.json', async (req, res) => {
 })
 app.get('/feed.rss', async (req, res) => {
   res.send(`<?xml version="1.0" encoding="UTF-8" ?>
-<rss version="2.0">
+<rss version="2.0" xmlns:xhtml="http://www.w3.org/1999/xhtml">
 <channel>
  <title>MGTV24</title>
  <description>Bringing you news from the community.</description>
