@@ -41,7 +41,7 @@ const MessageSingleASTNode = async (node) => {
   
       case 'link':
         return `
-          <a href=${node.target.replaceAll("&", "&amp;")}>
+          <a href="${node.target.replaceAll("&", "&amp;")}">
             ${await MessageASTNodes(node.content)}
           </a>
         `;
@@ -49,7 +49,7 @@ const MessageSingleASTNode = async (node) => {
       case 'url':
       case 'autolink':
         return `
-          <a href="${node.target}" target="_blank" rel="noreferrer">
+          <a href="${node.target.replaceAll("&", "&amp;")}" target="_blank" rel="noreferrer">
             ${await MessageASTNodes(node.content)}
           </a>
         `;
