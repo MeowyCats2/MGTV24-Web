@@ -133,7 +133,7 @@ const MessageSingleASTNode = async (node) => {
       case 'emoji':
       case 'twemoji':
         const emoji = await client.emojis.resolve(node.id)
-        return emoji ? `<img class="emoji" src="${emoji.imageURL()}">` : node.name;
+        return emoji ? `<img class="emoji" alt="${emoji.name} emoji" src="${emoji.imageURL()}">` : node.name;
   
       case 'timestamp':
         return node.timestamp + " (" + node.format + ")"
@@ -230,7 +230,7 @@ const MessageSingleASTNodePlaintext = async (node) => {
   }
   
 const generatePage = (title: string, content: string, meta: string, req) => `<!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <title>${title} - MGTV24 News</title>
         <link rel="stylesheet" href="/static/styles.css">
@@ -239,7 +239,7 @@ const generatePage = (title: string, content: string, meta: string, req) => `<!D
     </head>
     <body>
         <header>
-            <img src="/static/MGTV24-News.webp" class="emoji"> MGTV24 News <img src="/static/MGTV24-News.webp" class="emoji">
+            <img src="/static/MGTV24-News.webp" alt="MGTV24 news logo" class="emoji"> MGTV24 News <img src="/static/MGTV24-News.webp" alt="MGTV24 news logo" class="emoji">
             <form action="/search">
                 <input type="text" name="query" placeholder="Search...">
                 <input type="submit" value="Search">
@@ -337,7 +337,7 @@ app.get('/post/:post', async (req, res) => {
     ${parseHeadings(postData)}
     ${message.attachments.size > 0 ? `
       <div class="attachmentList">
-      ${[...message.attachments.values()].map(attachment => `<img src="${attachment.proxyURL}" class="attachment">`).join("")}
+      ${[...message.attachments.values()].map(attachment => `<img src="${attachment.proxyURL}" alt="${attachment.description ?? attachment.name + " attachment"}" class="attachment">`).join("")}
       </div>
     ` : ""}</div>
   <h2>Other Recent Posts</h2>
