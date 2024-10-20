@@ -133,7 +133,7 @@ const MessageSingleASTNode = async (node) => {
       case 'emoji':
       case 'twemoji':
         const emoji = await client.emojis.resolve(node.id)
-        return emoji ? `<image class="emoji" src="${emoji.imageURL()}">` : node.name;
+        return emoji ? `<img class="emoji" src="${emoji.imageURL()}">` : node.name;
   
       case 'timestamp':
         return node.timestamp + " (" + node.format + ")"
@@ -239,7 +239,7 @@ const generatePage = (title: string, content: string, meta: string, req) => `<!D
     </head>
     <body>
         <header>
-            <image src="/static/MGTV24-News.webp" class="emoji"> MGTV24 News <image src="/static/MGTV24-News.webp" class="emoji">
+            <img src="/static/MGTV24-News.webp" class="emoji"> MGTV24 News <img src="/static/MGTV24-News.webp" class="emoji">
             <form action="/search">
                 <input type="text" name="query" placeholder="Search...">
                 <input type="submit" value="Search">
@@ -354,13 +354,14 @@ app.get('/post/:post/oembed.json', async (req, res) => {
   })
 })
 app.get('/feed.rss', async (req, res) => {
-  res.send(`<?xml version="1.0" encoding="UTF-8" ?>
-<rss version="2.0">
+  res.set("Content-Type", "application/rss+xml").send(`<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
  <title>MGTV24</title>
  <description>Bringing you news from the community.</description>
  <link>https://${req.get("host")}</link>
  <docs>https://www.rssboard.org/rss-specification</docs>
+ <atom:link href="${req.get("host")}/feed.rss" rel="self" type="application/rss+xml" />
  ${(await generateRSSList(req)).join("\n")}
 </channel>
 </rss>`)
