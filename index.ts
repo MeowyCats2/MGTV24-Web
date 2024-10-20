@@ -361,7 +361,7 @@ app.get('/feed.rss', async (req, res) => {
  <description>Bringing you news from the community.</description>
  <link>https://${req.get("host")}</link>
  <docs>https://www.rssboard.org/rss-specification</docs>
- <atom:link href="${req.get("host")}/feed.rss" rel="self" type="application/rss+xml" />
+ <atom:link href="https://${req.get("host")}/feed.rss" rel="self" type="application/rss+xml" />
  ${(await generateRSSList(req)).join("\n")}
 </channel>
 </rss>`)
