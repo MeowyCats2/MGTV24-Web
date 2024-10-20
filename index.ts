@@ -41,7 +41,7 @@ const MessageSingleASTNode = async (node) => {
   
       case 'link':
         return `
-          <a href=${node.target}>
+          <a href=${node.target.replaceAll("&", "&amp;")}>
             ${await MessageASTNodes(node.content)}
           </a>
         `;
