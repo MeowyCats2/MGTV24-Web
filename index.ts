@@ -240,8 +240,8 @@ const generatePage = (title: string, content: string, meta: string, req) => `<!D
     <body>
         <header>
             <img src="/static/MGTV24-News.webp" alt="MGTV24 news logo" class="emoji"> MGTV24 News <img src="/static/MGTV24-News.webp" alt="MGTV24 news logo" class="emoji">
-            <form action="/search">
-                <input type="text" name="query" placeholder="Search...">
+            <form role="search" action="/search">
+                <input type="search" name="query" placeholder="Search...">
                 <input type="submit" value="Search">
             </form>
         </header>
