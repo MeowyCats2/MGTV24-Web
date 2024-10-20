@@ -45,7 +45,7 @@ header {
 }
 
 footer {
-    background: gray;
+    background: #333;
     color: white;
     text-align: center;
     position: absolute;
@@ -53,7 +53,7 @@ footer {
     padding: 0.5rem;
     box-sizing: border-box;
 }
-footer a {
+main > a, footer a {
     color: white;
 }
 
