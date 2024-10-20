@@ -78,7 +78,7 @@ const MessageSingleASTNode = async (node) => {
       case 'user': {
         const id = node.id as string;
         const user = await client.users.fetch(id);
-        return "#" + (user.displayName ?? user.username);
+        return "@" + (user.displayName ?? user.username);
       }
   
       case 'here':
@@ -198,7 +198,7 @@ const MessageSingleASTNodePlaintext = async (node) => {
       case 'user': {
         const id = node.id as string;
         const user = await client.users.fetch(id);
-        return "#" + (user.displayName ?? user.username);
+        return "@" + (user.displayName ?? user.username);
       }
   
       case 'here':
@@ -266,14 +266,17 @@ client.on(Events.MessageUpdate, async message => {
   if (message.channel.id !== mgtvChannel.id) return
   await setupMessages()
 })
+const blacklistedString = "<@&1216817149335703572>"
 const generateRSSList = async (req) => {
   const handledMessages = []
   for (const message of sortedMessages) {
+    if (message.content === blacklistedString) continue;
     const date = message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "medium" })
     handledMessages.push(`<item>
       <title>${escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? date))) ?? date}</title>
       <link>https://${req.get("host")}/post/${message.id}</link>
-      <description><![CDATA[${parseHeadings(await MessageASTNodes(parse(message.content, "extended")))}]]></description>
+      <description><![CDATA[${parseHeadings(await MessageASTNodes(parse(message.content, "extended")))}
+      ${[...message.attachments.values()].map(attachment => `<img src="${attachment.proxyURL}" alt="${attachment.description ?? attachment.name + " attachment"}" class="attachment">`).join("")}]]></description>
       <pubDate>${message.createdAt.toUTCString()}</pubDate>
       <guid isPermaLink="false">${message.id}</guid>
     </item>`)
@@ -283,6 +286,7 @@ const generateRSSList = async (req) => {
 const generatePostList = async () => {
   const handledMessages = []
   for (const message of sortedMessages) {
+    if (message.content === blacklistedString) continue;
     handledMessages.push(`<div class="newsPost">
       <i>Written by <b>${message.author.displayName}</b> on <b>${message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "medium" })}</b></i><br />
       ${parseHeadings(await MessageASTNodes(parse(message.content, "extended")))}<br/><br/>
