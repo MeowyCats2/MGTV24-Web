@@ -37,7 +37,7 @@ const MessageSingleASTNode = async (node) => {
   
     switch (type) {
       case 'text':
-        return node.content;
+        return node.content.replaceAll("&", "&amp;");
   
       case 'link':
         return `
