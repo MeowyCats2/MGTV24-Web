@@ -323,7 +323,7 @@ app.get('/', async (req, res) => {
 app.get('/search', async (req, res) => {
   if (!req.query.query) return res.redirect("/")
   const results = parsedMessages.filter(data => data.replaceAll(/(<br \/>|^)\s*<i>.+?<\/i>/gs, "").toLowerCase().replaceAll(/\s/g, "").includes(req.query.query!.toLowerCase().replaceAll(/\s/g, "")))
-  res.send(generatePage(`Search - ${req.query.query}`, `<span>${results.length} results</span>` + results.slice(+(req.query.page ?? 1) * 50 - 50, +(req.query.page ?? 1) * 50).join("") + `<br />${+req.query.page! > 1 ? `<a href="/search?query=${req.query.query}&page=${+req.query.page! - 1}">Previous Page</a> ` : ""}<a href="/?query=${req.query.query}&page=${+(req.query.page ?? 1) + 1}">Next Page</a>`, `<meta property="og:title" content="${req.query.query} - Search">
+  res.send(generatePage(`Search - ${req.query.query}`, `<span>${results.length} results</span>` + results.slice(+(req.query.page ?? 1) * 50 - 50, +(req.query.page ?? 1) * 50).join("") + `<br />${+req.query.page! > 1 ? `<a href="/search?query=${req.query.query}&page=${+req.query.page! - 1}">Previous Page</a> ` : ""}<a href="/search?query=${req.query.query}&page=${+(req.query.page ?? 1) + 1}">Next Page</a>`, `<meta property="og:title" content="${req.query.query} - Search">
   <meta property="og:description" content="Find out the search results for ${req.query.query} today here at MGTV24 Web.">
   <meta property="og:site_name" content="MGTV24 Web &bull; ${parsedMessages.length} articles">`, req))
 })
