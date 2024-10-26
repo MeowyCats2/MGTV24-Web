@@ -266,6 +266,10 @@ client.on(Events.MessageUpdate, async message => {
   if (message.channel.id !== mgtvChannel.id) return
   await setupMessages()
 })
+client.on(Events.MessageDelete, async message => {
+  if (message.channel.id !== mgtvChannel.id) return
+  await setupMessages()
+})
 const blacklistedString = "<@&1216817149335703572>"
 const generateRSSList = async (req) => {
   const handledMessages = []
