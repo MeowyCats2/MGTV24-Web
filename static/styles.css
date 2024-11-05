@@ -56,7 +56,9 @@ footer {
 main > a, footer a {
     color: white;
 }
-
+main > div {
+    align-self: start;
+}
 .footerSpacing {
     height: 5rem;
 }
