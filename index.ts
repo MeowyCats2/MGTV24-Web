@@ -305,18 +305,19 @@ let messages: Message[] = [];
 let parsedMessages: String[] = []
 let sortedMessages: Message[] = []
 const setupMessages = async () => {
-  messages = [];
-  let before = null;
+  const pendingMessages = [];
+  let before;
   while (1) {
     const newMessages = await mgtvChannel.messages.fetch({
         limit: 100,
         before
     })
     if (newMessages.size === 0) break;
-    messages.unshift(...[...newMessages.values()]);
+    pendingMessages.unshift(...[...newMessages.values()]);
     console.log("before: " + before)
     before = ([...newMessages.values()] as Message[]).at(-1)!.id;
   }
+  messages = pendingMessages
   sortedMessages = messages.sort((a, b) => b.createdTimestamp - a.createdTimestamp)
   parsedMessages = await generatePostList()
   console.log("done!")
