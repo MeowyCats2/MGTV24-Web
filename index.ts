@@ -1,6 +1,7 @@
 import express from "express";
 import "express-async-errors";
 import { parse } from 'discord-markdown-parser';
+import { minify } from "html-minifier";
 
 // Require the necessary discord.js classes
 import { Client, Events, GatewayIntentBits, TextChannel, Message } from "discord.js";
@@ -279,7 +280,9 @@ const generateRSSList = async (req) => {
     handledMessages.push(`<item>
       <title>${escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? date))) ?? date}</title>
       <link>https://${req.get("host")}/post/${message.id}</link>
-      <description><![CDATA[${parseHeadings(await MessageASTNodes(parse(message.content, "extended")))}
+      <description><![CDATA[${minify(parseHeadings(await MessageASTNodes(parse(message.content, "extended"))), {
+        "collapseWhitespace": true
+      })}
       ${[...message.attachments.values()].map(attachment => `<img src="${attachment.proxyURL}" alt="${attachment.description ?? attachment.name + " attachment"}" class="attachment">`).join("")}]]></description>
       <pubDate>${message.createdAt.toUTCString()}</pubDate>
       <guid isPermaLink="false">${message.id}</guid>
@@ -293,7 +296,9 @@ const generatePostList = async () => {
     if (message.content === blacklistedString) continue;
     handledMessages.push(`<div class="newsPost">
       <i>Written by <b>${message.author.displayName}</b> on <b>${message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "medium" })}</b></i><br />
-      ${parseHeadings(await MessageASTNodes(parse(message.content, "extended")))}<br/><br/>
+      ${minify(parseHeadings(await MessageASTNodes(parse(message.content, "extended"))), {
+        "collapseWhitespace": true
+      })}<br/><br/>
       ${message.attachments.size ? message.attachments.size + " attachments<br />" : ""}
       <a href="/post/${message.id}">Link to post for sharing</a>
     </div>`)
@@ -343,7 +348,9 @@ app.get('/post/:post', async (req, res) => {
   const message = await mgtvChannel.messages.fetch(req.params.post)
   const postData = await MessageASTNodes(parse(message.content, "extended"))
   res.send(generatePage(escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? "Post"))) ?? "Post", `<div><i>Written by <b>${message.author.displayName}</b> on <b>${message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "medium" })}</b></i><br />
-    ${parseHeadings(postData)}
+    ${minify(parseHeadings(postData), {
+      "collapseWhitespace": true
+    })}
     ${message.attachments.size > 0 ? `
       <div class="attachmentList">
       ${[...message.attachments.values()].map(attachment => `<img src="${attachment.proxyURL}" alt="${attachment.description ?? attachment.name + " attachment"}" class="attachment">`).join("")}
