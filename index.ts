@@ -253,7 +253,7 @@ const generatePage = (title: string, content: string, meta: string, req) => `<!D
         </footer>
     </body>
 </html>`
-const parseHeadings = (content: String) => content.replaceAll(/(\n|^)\s*#\s(.+?)(<br \/>|$)/gs, "<h1>$2</h1>")
+const parseHeadings = (content: String) => content.replaceAll(/(\n|^)\s*#\s*#\s(.+?)(<br \/>|$)/gs, "<h2>$2</h2>").replaceAll(/(\n|^)\s*#\s(.+?)(<br \/>|$)/gs, "<h1>$2</h1>")
 const getHeading = (content: String) => content.match(/^#\s(.+?)$/m)?.[1]
 const app = express()
 app.use("/static", express.static("static"))
@@ -336,7 +336,7 @@ app.get('/search', async (req, res) => {
   <meta property="og:description" content="Find out the search results for ${req.query.query} today here at MGTV24 Web.">
   <meta property="og:site_name" content="MGTV24 Web &bull; ${parsedMessages.length} articles">`, req))
 })
-const escapeHtml = (unsafe) => {
+const escapeHtml = (unsafe: string) => {
   return unsafe.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
 }
 app.get('/post/:post', async (req, res) => {
@@ -371,7 +371,7 @@ app.get('/feed.rss', async (req, res) => {
  <link>https://${req.get("host")}</link>
  <docs>https://www.rssboard.org/rss-specification</docs>
  <atom:link href="https://${req.get("host")}/feed.rss" rel="self" type="application/rss+xml" />
- ${(await generateRSSList(req)).join("\n")}
+ ${req.query.max ? (await generateRSSList(req)).join("\n").slice(+(req.query.page ?? 0) * +req.query.max, +(req.query.page ?? 0) * +req.query.max + +req.query.max) : (await generateRSSList(req)).join("\n")}
 </channel>
 </rss>`)
 })
