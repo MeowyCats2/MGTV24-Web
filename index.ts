@@ -371,7 +371,7 @@ app.get('/feed.rss', async (req, res) => {
  <link>https://${req.get("host")}</link>
  <docs>https://www.rssboard.org/rss-specification</docs>
  <atom:link href="https://${req.get("host")}/feed.rss" rel="self" type="application/rss+xml" />
- ${req.query.max ? (await generateRSSList(req)).join("\n").slice(+(req.query.page ?? 0) * +req.query.max, +(req.query.page ?? 0) * +req.query.max + +req.query.max) : (await generateRSSList(req)).join("\n")}
+ ${req.query.max ? (await generateRSSList(req)).slice(+(req.query.page ?? 0) * +req.query.max, +(req.query.page ?? 0) * +req.query.max + +req.query.max).join("\n") : (await generateRSSList(req)).join("\n")}
 </channel>
 </rss>`)
 })
