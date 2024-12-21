@@ -271,24 +271,42 @@ client.on(Events.MessageDelete, async message => {
   if (message.channel.id !== mgtvChannel.id) return
   await setupMessages()
 })
+
+const escapeHtml = (unsafe: string) => {
+  return unsafe.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+}
+
 const blacklistedString = "<@&1216817149335703572>"
-const generateRSSList = async (req) => {
+const generateRSSList = (req: Request) => {
   const handledMessages = []
   for (const message of sortedMessages) {
     if (message.content === blacklistedString) continue;
-    const date = message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "medium" })
     handledMessages.push(`<item>
-      <title>${escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? date))) ?? date}</title>
+      <title>${preRenderedRSS[message.id].title}</title>
       <link>https://${req.get("host")}/post/${message.id}</link>
-      <description><![CDATA[${minify(parseHeadings(await MessageASTNodes(parse(message.content, "extended"))), {
-        "collapseWhitespace": true
-      })}
+      <description><![CDATA[${preRenderedRSS[message.id].description}
       ${[...message.attachments.values()].map(attachment => `<img src="${attachment.proxyURL}" alt="${attachment.description ?? attachment.name + " attachment"}" class="attachment">`).join("")}]]></description>
       <pubDate>${message.createdAt.toUTCString()}</pubDate>
       <guid isPermaLink="false">${message.id}</guid>
     </item>`)
   }
   return handledMessages
+}
+const preRenderRSS = async () => {
+  const handledMessages: Record<string, {
+    title: string,
+    description: string
+  }> = {}
+  for (const message of sortedMessages) {
+    const date = message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "medium" })
+    handledMessages[message.id] = {
+      "title": escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? date))) ?? date,
+      "description": minify(parseHeadings(await MessageASTNodes(parse(message.content, "extended"))), {
+        "collapseWhitespace": true
+      })
+    };
+  }
+  return handledMessages;
 }
 const generatePostList = async () => {
   const handledMessages = []
@@ -309,6 +327,10 @@ const mgtvChannel: TextChannel = (await client.channels.fetch("12174947663972967
 let messages: Message[] = [];
 let parsedMessages: String[] = []
 let sortedMessages: Message[] = []
+let preRenderedRSS: Record<string, {
+  title: string,
+  description: string
+}> = {};
 const setupMessages = async () => {
   const pendingMessages = [];
   let before;
@@ -325,6 +347,7 @@ const setupMessages = async () => {
   messages = pendingMessages
   sortedMessages = messages.sort((a, b) => b.createdTimestamp - a.createdTimestamp)
   parsedMessages = await generatePostList()
+  preRenderedRSS = await preRenderRSS();
   console.log("done!")
 }
 await setupMessages()
@@ -341,9 +364,6 @@ app.get('/search', async (req, res) => {
   <meta property="og:description" content="Find out the search results for ${req.query.query} today here at MGTV24 Web.">
   <meta property="og:site_name" content="MGTV24 Web &bull; ${parsedMessages.length} articles">`, req))
 })
-const escapeHtml = (unsafe: string) => {
-  return unsafe.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
-}
 app.get('/post/:post', async (req, res) => {
   const message = await mgtvChannel.messages.fetch(req.params.post)
   const postData = await MessageASTNodes(parse(message.content, "extended"))
@@ -378,7 +398,7 @@ app.get('/feed.rss', async (req, res) => {
  <link>https://${req.get("host")}</link>
  <docs>https://www.rssboard.org/rss-specification</docs>
  <atom:link href="https://${req.get("host")}/feed.rss" rel="self" type="application/rss+xml" />
- ${req.query.max ? (await generateRSSList(req)).slice(+(req.query.page ?? 0) * +req.query.max, +(req.query.page ?? 0) * +req.query.max + +req.query.max).join("\n") : (await generateRSSList(req)).join("\n")}
+ ${req.query.max ? (await generateRSSList(req as unknown as Request)).slice(+(req.query.page ?? 0) * +req.query.max, +(req.query.page ?? 0) * +req.query.max + +req.query.max).join("\n") : (await generateRSSList(req as unknown as Request)).join("\n")}
 </channel>
 </rss>`)
 })
