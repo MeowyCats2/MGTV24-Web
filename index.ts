@@ -453,7 +453,7 @@ app.get('/post/:post', async (req, res) => {
       </div>
     ` : ""}</div>
   <h2>Other Recent Posts</h2>
-    ${parsedMessages.slice(0, 50).join("")}<br/><a href="/?page=2">See more</a>`, `<meta property="og:title" content="${escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? "Post")) ?? "") ?? "Post"}">
+    ${parsedMessages.slice(0, 50).map(post => post.content).join("")}<br/><a href="/?page=2">See more</a>`, `<meta property="og:title" content="${escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? "Post")) ?? "") ?? "Post"}">
     <meta property="og:description" content="${escapeHtml(await MessageASTNodesPlaintext(parse(message.content)) ?? "")}">
     <meta property="og:site_name" content="MGTV24 Web &bull; ${parsedMessages.length} articles">
     <link type="application/json+oembed" href="https://${req.get("host")}/post/${req.params.post}/oembed.json" />`, req))
@@ -486,7 +486,7 @@ app.get('/feeds/:feed', async (req, res) => {
     res.status(404).send(generatePage("Feed Not Found", "Feed not found.", "", req));
     return;
   };
-  res.send(generatePage("News List", feed.parsed.slice(+(req.query.page ?? 1) * 50 - 50, +(req.query.page ?? 1) * 50).map(post => post.content).join("") + `<br />${+req.query.page! > 1 ? `<a href="/?page=${+req.query.page! - 1}">Previous Page</a> ` : ""}<a href="/?page=${+(req.query.page ?? 1) + 1}">Next Page</a>`, `<meta property="og:title" content="News List">
+  res.send(generatePage("News List", feed.parsed.slice(+(req.query.page ?? 1) * 50 - 50, +(req.query.page ?? 1) * 50).map(post => post.content).join("") + `<br />${+req.query.page! > 1 ? `<a href="/feeds/${req.params.feed}?page=${+req.query.page! - 1}">Previous Page</a> ` : ""}<a href="/feeds/${req.params.feed}?page=${+(req.query.page ?? 1) + 1}">Next Page</a>`, `<meta property="og:title" content="News List">
 <meta property="og:description" content="Start reading MGTV24 news articles online today.">
 <meta property="og:site_name" content="MGTV24 Web &bull; ${feed.parsed.length} ${feed.name} articles">`, req))
 })
@@ -509,7 +509,7 @@ app.get('/feeds/:feed/post/:post', async (req, res) => {
       </div>
     ` : ""}</div>
   <h2>Other Recent Posts</h2>
-    ${feed.parsed.slice(0, 50).join("")}<br/><a href="/?page=2">See more</a>`, `<meta property="og:title" content="${escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? "Post")) ?? "") ?? "Post"}">
+    ${feed.parsed.slice(0, 50).map(post => post.content).join("")}<br/><a href="/?page=2">See more</a>`, `<meta property="og:title" content="${escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? "Post")) ?? "") ?? "Post"}">
     <meta property="og:description" content="${escapeHtml(await MessageASTNodesPlaintext(parse(message.content)) ?? "")}">
     <meta property="og:site_name" content="MGTV24 Web &bull; ${parsedMessages.length} articles">
     <link type="application/json+oembed" href="https://${req.get("host")}/post/${req.params.post}/oembed.json" />`, req))
@@ -540,7 +540,7 @@ app.get('/feeds/:feed/search', async (req, res) => {
   };
   if (!req.query.query) return res.redirect("/feeds/" + req.query.feed)
   const results = feed.parsed.filter(data => data.content.replaceAll(/(<br \/>|^)\s*<i>.+?<\/i>/gs, "").toLowerCase().replaceAll(/\s/g, "").includes((req.query.query as string).toLowerCase().replaceAll(/\s/g, ""))).map(post => post.content)
-  res.send(generatePage(`Search - ${req.query.query}`, `<span>${results.length} results</span>` + results.slice(+(req.query.page ?? 1) * 50 - 50, +(req.query.page ?? 1) * 50).join("") + `<br />${+req.query.page! > 1 ? `<a href="/search?query=${req.query.query}&page=${+req.query.page! - 1}">Previous Page</a> ` : ""}<a href="/search?query=${req.query.query}&page=${+(req.query.page ?? 1) + 1}">Next Page</a>`, `<meta property="og:title" content="${req.query.query} - Search">
+  res.send(generatePage(`Search - ${req.query.query}`, `<span>${results.length} results</span>` + results.slice(+(req.query.page ?? 1) * 50 - 50, +(req.query.page ?? 1) * 50).join("") + `<br />${+req.query.page! > 1 ? `<a href="/feeds/${req.params.feed}/search?query=${req.query.query}&page=${+req.query.page! - 1}">Previous Page</a> ` : ""}<a href="/feeds/${req.params.feed}/search?query=${req.query.query}&page=${+(req.query.page ?? 1) + 1}">Next Page</a>`, `<meta property="og:title" content="${req.query.query} - Search">
   <meta property="og:description" content="Find out the search results for ${req.query.query} today here at MGTV24 Web.">
   <meta property="og:site_name" content="MGTV24 Web &bull; ${feed.parsed.length} ${feed.name} articles">`, req))
 })
@@ -551,7 +551,7 @@ app.get('/all', async (req, res) => {
     allMessages.push(...feed.parsed)
   }
   const sortedMessages = allMessages.sort((a, b) => b.createdTimestamp - a.createdTimestamp)
-  res.send(generatePage("News List", sortedMessages.slice(+(req.query.page ?? 1) * 50 - 50, +(req.query.page ?? 1) * 50).map(post => post.content).join("") + `<br />${+req.query.page! > 1 ? `<a href="/?page=${+req.query.page! - 1}">Previous Page</a> ` : ""}<a href="/?page=${+(req.query.page ?? 1) + 1}">Next Page</a>`, `<meta property="og:title" content="News List">
+  res.send(generatePage("News List", sortedMessages.slice(+(req.query.page ?? 1) * 50 - 50, +(req.query.page ?? 1) * 50).map(post => post.content).join("") + `<br />${+req.query.page! > 1 ? `<a href="/all?page=${+req.query.page! - 1}">Previous Page</a> ` : ""}<a href="/all?page=${+(req.query.page ?? 1) + 1}">Next Page</a>`, `<meta property="og:title" content="News List">
 <meta property="og:description" content="Start reading MGTV24 news articles online today.">
 <meta property="og:site_name" content="MGTV24 Web &bull; ${parsedMessages.length} articles">`, req))
 })
@@ -564,7 +564,7 @@ app.get('/all/search', async (req, res) => {
   const sortedMessages = allMessages.sort((a, b) => b.createdTimestamp - a.createdTimestamp)
   if (!req.query.query) return res.redirect("/all")
   const results = sortedMessages.filter(data => data.content.replaceAll(/(<br \/>|^)\s*<i>.+?<\/i>/gs, "").toLowerCase().replaceAll(/\s/g, "").includes((req.query.query as string).toLowerCase().replaceAll(/\s/g, ""))).map(post => post.content)
-  res.send(generatePage(`Search - ${req.query.query}`, `<span>${results.length} results</span>` + results.slice(+(req.query.page ?? 1) * 50 - 50, +(req.query.page ?? 1) * 50).join("") + `<br />${+req.query.page! > 1 ? `<a href="/search?query=${req.query.query}&page=${+req.query.page! - 1}">Previous Page</a> ` : ""}<a href="/search?query=${req.query.query}&page=${+(req.query.page ?? 1) + 1}">Next Page</a>`, `<meta property="og:title" content="${req.query.query} - Search">
+  res.send(generatePage(`Search - ${req.query.query}`, `<span>${results.length} results</span>` + results.slice(+(req.query.page ?? 1) * 50 - 50, +(req.query.page ?? 1) * 50).join("") + `<br />${+req.query.page! > 1 ? `<a href="/all/search?query=${req.query.query}&page=${+req.query.page! - 1}">Previous Page</a> ` : ""}<a href="/all/search?query=${req.query.query}&page=${+(req.query.page ?? 1) + 1}">Next Page</a>`, `<meta property="og:title" content="${req.query.query} - Search">
   <meta property="og:description" content="Find out the search results for ${req.query.query} today here at MGTV24 Web.">
   <meta property="og:site_name" content="MGTV24 Web &bull; ${sortedMessages.length} articles in total">`, req))
 })
