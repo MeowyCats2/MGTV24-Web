@@ -486,7 +486,7 @@ app.get('/feeds/:feed', async (req, res) => {
     res.status(404).send(generatePage("Feed Not Found", "Feed not found.", "", req));
     return;
   };
-  res.send(generatePage("News List", feed.parsed.slice(+(req.query.page ?? 1) * 50 - 50, +(req.query.page ?? 1) * 50).map(post => post.content).join("") + `<br />${+req.query.page! > 1 ? `<a href="/feeds/${req.params.feed}?page=${+req.query.page! - 1}">Previous Page</a> ` : ""}<a href="/feeds/${req.params.feed}?page=${+(req.query.page ?? 1) + 1}">Next Page</a>`, `<meta property="og:title" content="News List">
+  res.send(generatePage(feed.name + " News", feed.parsed.slice(+(req.query.page ?? 1) * 50 - 50, +(req.query.page ?? 1) * 50).map(post => post.content).join("") + `<br />${+req.query.page! > 1 ? `<a href="/feeds/${req.params.feed}?page=${+req.query.page! - 1}">Previous Page</a> ` : ""}<a href="/feeds/${req.params.feed}?page=${+(req.query.page ?? 1) + 1}">Next Page</a>`, `<meta property="og:title" content="News List">
 <meta property="og:description" content="Start reading MGTV24 news articles online today.">
 <meta property="og:site_name" content="MGTV24 Web &bull; ${feed.parsed.length} ${feed.name} articles">`, req))
 })
@@ -551,7 +551,7 @@ app.get('/all', async (req, res) => {
     allMessages.push(...feed.parsed)
   }
   const sortedMessages = allMessages.sort((a, b) => b.createdTimestamp - a.createdTimestamp)
-  res.send(generatePage("News List", sortedMessages.slice(+(req.query.page ?? 1) * 50 - 50, +(req.query.page ?? 1) * 50).map(post => post.content).join("") + `<br />${+req.query.page! > 1 ? `<a href="/all?page=${+req.query.page! - 1}">Previous Page</a> ` : ""}<a href="/all?page=${+(req.query.page ?? 1) + 1}">Next Page</a>`, `<meta property="og:title" content="News List">
+  res.send(generatePage("All News", sortedMessages.slice(+(req.query.page ?? 1) * 50 - 50, +(req.query.page ?? 1) * 50).map(post => post.content).join("") + `<br />${+req.query.page! > 1 ? `<a href="/all?page=${+req.query.page! - 1}">Previous Page</a> ` : ""}<a href="/all?page=${+(req.query.page ?? 1) + 1}">Next Page</a>`, `<meta property="og:title" content="News List">
 <meta property="og:description" content="Start reading MGTV24 news articles online today.">
 <meta property="og:site_name" content="MGTV24 Web &bull; ${parsedMessages.length} articles">`, req))
 })
