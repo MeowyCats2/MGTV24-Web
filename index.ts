@@ -59,7 +59,7 @@ const MessageSingleASTNode = async (node: SingleASTNode ): Promise<string | null
       case 'blockQuote':
         return `
           <blockquote>
-            ${await MessageASTNodes(node.content)}
+            ${typeof node.content === "string" ? node.content : await MessageASTNodes(node.content)}
           </blockquote>
         `;
   
@@ -70,7 +70,7 @@ const MessageSingleASTNode = async (node: SingleASTNode ): Promise<string | null
       case 'channel': {
         const id = node.id as string;
         try {
-          return "#" + ((await client.channels.fetch(id)) as GuildChannel)?.name;
+          return "#" + escapeHtml(((await client.channels.fetch(id)) as GuildChannel)?.name ?? "Unknown");
         } catch (e) {
           return "&lt;#" + id + "&rt;"
         }
@@ -79,7 +79,7 @@ const MessageSingleASTNode = async (node: SingleASTNode ): Promise<string | null
       case 'role': {
         const id = node.id as string;
         try {
-          return "@" + (await mgtvChannel.guild.roles.fetch(id))?.name;
+          return "@" + escapeHtml((await mgtvChannel.guild.roles.fetch(id))?.name ?? "Unknown");
         } catch (e) {
           return "<@" + id + ">"
         }
@@ -88,7 +88,7 @@ const MessageSingleASTNode = async (node: SingleASTNode ): Promise<string | null
       case 'user': {
         const id = node.id as string;
         const user = await client.users.fetch(id);
-        return "@" + (user.displayName ?? user.username);
+        return "@" + escapeHtml(user.displayName ?? user.username);
       }
   
       case 'here':
@@ -99,33 +99,33 @@ const MessageSingleASTNode = async (node: SingleASTNode ): Promise<string | null
         return `
           <code>${node.lang}</code>
           <blockquote>
-            ${await MessageASTNodes(node.content)}
+            ${typeof node.content === "string" ? node.content : await MessageASTNodes(node.content)}
           </blockquote>
         `;
   
       case 'inlineCode':
         return `
-          <code>${await MessageASTNodes(node.content)}</code>
+          <code>${typeof node.content === "string" ? node.content : await MessageASTNodes(node.content)}</code>
         `;
   
       case 'em':
         return `
-          <i>${await MessageASTNodes(node.content)}</i>
+          <i>${typeof node.content === "string" ? node.content : await MessageASTNodes(node.content)}</i>
         `;
   
       case 'strong':
         return `
-          <b>${await MessageASTNodes(node.content)}</b>
+          <b>${typeof node.content === "string" ? node.content : await MessageASTNodes(node.content)}</b>
         `;
   
       case 'underline':
         return `
-          <u>${await MessageASTNodes(node.content)}</u>
+          <u>${typeof node.content === "string" ? node.content : await MessageASTNodes(node.content)}</u>
         `;
   
       case 'strikethrough':
         return `
-          <s>${await MessageASTNodes(node.content)}</s>
+          <s>${typeof node.content === "string" ? node.content : await MessageASTNodes(node.content)}</s>
         `;
   
       case 'emoticon':
@@ -137,7 +137,7 @@ const MessageSingleASTNode = async (node: SingleASTNode ): Promise<string | null
   
       case 'spoiler':
         return `
-          <span class="spoiler">${await MessageASTNodes(node.content)}</span>
+          <span class="spoiler">${typeof node.content === "string" ? node.content : await MessageASTNodes(node.content)}</span>
         `;
   
       case 'emoji':
@@ -174,6 +174,7 @@ const MessageSingleASTNode = async (node: SingleASTNode ): Promise<string | null
   
 const MessageSingleASTNodePlaintext = async (node: SingleASTNode): Promise<string | null | undefined> => {
     if (!node) return null;
+    if (typeof node === "string") return node;
   
     const type = node.type;
   
@@ -319,7 +320,7 @@ const preRenderRSS = async (sortedMessages: Message[]) => {
     const date = message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "medium" })
     handledMessages[message.id] = {
       "title": escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? date)) ?? "")?.trim() ?? date,
-      "description": minify(parseHeadings(await MessageASTNodes(parse(message.content, "extended")) ?? ""), {
+      "description": minify(parseHeadings(await MessageASTNodes(parse(escapeHtml(message.content), "extended")) ?? ""), {
         "collapseWhitespace": true
       })
     };
@@ -333,7 +334,7 @@ const generatePostList = async (messages: Message[], linkPrefix: string) => {
     handledMessages.push({
       createdTimestamp: message.createdTimestamp,
       content: `<div class="newsPost">
-        <i>Written by <b>${message.author.displayName}</b> on <b>${message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "medium" })}</b></i><br />
+        <i>Written by <b>${escapeHtml(message.author.displayName)}</b> on <b>${message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "medium" })}</b></i><br />
         ${minify(parseHeadings(await MessageASTNodes(parse(message.content, "extended")) ?? ""), {
           "collapseWhitespace": true
         })}<br/><br/>
