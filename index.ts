@@ -379,6 +379,7 @@ await setupMessages()
 type FeedData = {
   id: Snowflake,
   name: string,
+  aliases: string[],
   messages: Message[],
   parsed: {createdTimestamp: number, content: string}[],
   rss: Record<string, {title: string, description: string}>
@@ -400,9 +401,10 @@ const feeds: Record<string, FeedData> = {
     "id": "1295407859411976286",
     "name": "VIZTV"
   },
-  "icn": {
+  "finutria": {
     "id": "1298645364559183955",
-    "name": "ICN"
+    "name": "FINUTRIA",
+    "aliases": ["icn"]
   },
   "aztv": {
     "id": "1316575386133467207",
@@ -480,24 +482,30 @@ app.get('/feed.rss', async (req, res) => {
 </rss>`)
 })
 
-
-app.get('/feeds/:feed', async (req, res) => {
+const getFeed = (req: express.Request, res: express.Response) => {
   const feed = feeds[req.params.feed];
   if (!feed) {
-    res.status(404).send(generatePage("Feed Not Found", "Feed not found.", "", req));
-    return;
+    const alias = Object.entries(feeds).find(feed => feed[1].aliases?.includes(req.params.feed))?.[0];
+    if (alias) {
+      res.redirect(308, req.path.replace(req.params.feed, alias))
+    } else {
+      res.status(404).send(generatePage("Feed Not Found", "Feed not found.", "", req));
+    }
+    return null;
   };
+  return feed;
+}
+app.get('/feeds/:feed', async (req, res) => {
+  const feed = getFeed(req, res);
+  if (!feed) return;
   res.send(generatePage(feed.name + " News", feed.parsed.slice(+(req.query.page ?? 1) * 50 - 50, +(req.query.page ?? 1) * 50).map(post => post.content).join("") + `<br />${+req.query.page! > 1 ? `<a href="/feeds/${req.params.feed}?page=${+req.query.page! - 1}">Previous Page</a> ` : ""}<a href="/feeds/${req.params.feed}?page=${+(req.query.page ?? 1) + 1}">Next Page</a>`, `<meta property="og:title" content="News List">
 <meta property="og:description" content="Start reading MGTV24 news articles online today.">
 <meta property="og:site_name" content="MGTV24 Web &bull; ${feed.parsed.length} ${feed.name} articles">`, req))
 })
 
 app.get('/feeds/:feed/post/:post', async (req, res) => {
-  const feed = feeds[req.params.feed];
-  if (!feed) {
-    res.status(404).send(generatePage("Feed Not Found", "Feed not found.", "", req));
-    return;
-  };
+  const feed = getFeed(req, res);
+  if (!feed) return;
   const message = await (await client.channels.fetch(feed.id) as TextChannel).messages.fetch(req.params.post)
   const postData = await MessageASTNodes(parse(message.content, "extended"))
   res.send(generatePage(escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? "Post")) ?? "") ?? "Post", `<div><i>Written by <b>${message.author.displayName}</b> on <b>${message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "medium" })}</b></i><br />
@@ -516,11 +524,8 @@ app.get('/feeds/:feed/post/:post', async (req, res) => {
     <link type="application/json+oembed" href="https://${req.get("host")}/post/${req.params.post}/oembed.json" />`, req))
 })
 app.get('/feeds/:feed/feed.rss', async (req, res) => {
-  const feed = feeds[req.params.feed];
-  if (!feed) {
-    res.status(404).send(generatePage("Feed Not Found", "Feed not found.", "", req));
-    return;
-  };
+  const feed = getFeed(req, res);
+  if (!feed) return;
   res.set("Content-Type", "application/rss+xml").send(`<?xml version="1.0" encoding="UTF-8" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
@@ -534,11 +539,8 @@ app.get('/feeds/:feed/feed.rss', async (req, res) => {
 </rss>`)
 })
 app.get('/feeds/:feed/search', async (req, res) => {
-  const feed = feeds[req.params.feed];
-  if (!feed) {
-    res.status(404).send(generatePage("Feed Not Found", "Feed not found.", "", req));
-    return;
-  };
+  const feed = getFeed(req, res);
+  if (!feed) return;
   if (!req.query.query) return res.redirect("/feeds/" + req.query.feed)
   const results = feed.parsed.filter(data => data.content.replaceAll(/(<br \/>|^)\s*<i>.+?<\/i>/gs, "").toLowerCase().replaceAll(/\s/g, "").includes((req.query.query as string).toLowerCase().replaceAll(/\s/g, ""))).map(post => post.content)
   res.send(generatePage(`Search - ${req.query.query}`, `<span>${results.length} results</span>` + results.slice(+(req.query.page ?? 1) * 50 - 50, +(req.query.page ?? 1) * 50).join("") + `<br />${+req.query.page! > 1 ? `<a href="/feeds/${req.params.feed}/search?query=${req.query.query}&page=${+req.query.page! - 1}">Previous Page</a> ` : ""}<a href="/feeds/${req.params.feed}/search?query=${req.query.query}&page=${+(req.query.page ?? 1) + 1}">Next Page</a>`, `<meta property="og:title" content="${req.query.query} - Search">
