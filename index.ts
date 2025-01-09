@@ -598,6 +598,37 @@ app.get('/all/feed.rss', async (req, res) => {
 </rss>`)
 })
 
+app.get('/robots.txt', async (req, res) => {
+  await res.set("Content-Type", "text/plain").send(`User-agent: *
+Allow: /
+
+Sitemap: ${req.get("host")}/sitemap-index.xml`);
+});
+app.get('/sitemap-index.xml', async (req, res) => {
+  await res.set("Content-Type", "application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>https://${req.get("host")}/sitemap-0.xml</loc>
+  </sitemap>
+</sitemapindex>`);
+});
+app.get('/sitemap-0.xml', async (req, res) => {
+  const allMessages = sortedMessages.map(message => `<url>
+  <loc>https://${req.get("host")}/post/${message.id}</loc>
+  <lastmod>${message.createdAt.toISOString()}</lastmod>
+</url>`);
+  for (const [id, feed] of Object.entries(feeds)) {
+    allMessages.push(...feed.messages.map(message => `<url>
+  <loc>https://${req.get("host")}/feed/${id}/post/${message.id}</loc>
+  <lastmod>${message.createdAt.toISOString()}</lastmod>
+</url>`))
+  }
+  await res.set("Content-Type", "text/plain").send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  ${allMessages.join("\n")}
+</urlset>`);
+});
+
 client.on(Events.MessageCreate, async message => {
   if (message.channel.id === mgtvChannel.id) return await setupMessages()
   for (const [feedId, data] of Object.entries(feeds)) {
