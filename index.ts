@@ -260,7 +260,7 @@ const generatePage = (title: string, content: string, meta: string, req: express
     <body>
         <header>
             <span><img src="/static/MGTV24-News.webp" alt="MGTV24 news logo" class="emoji"> MGTV24 News <img src="/static/MGTV24-News.webp" alt="MGTV24 news logo" class="emoji"></span>
-            <form role="search" action="${req.path.startsWith("/all") ? "/all/search" : (req.params.feed ? "/feeds/" + req.params.feed + "/search" : "/feed")}">
+            <form role="search" action="${req.path.startsWith("/all") ? "/all/search" : (req.params.feed ? "/feeds/" + req.params.feed + "/search" : "/search")}">
                 <input type="search" name="query" placeholder="${req.path.startsWith("/all") ? "Search all stations" : (req.params.feed ? "Search this radio station" : "Search...")}">
                 <input type="submit" value="Search">
             </form>
