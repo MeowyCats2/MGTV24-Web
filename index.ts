@@ -320,7 +320,7 @@ const preRenderRSS = async (sortedMessages: Message[]) => {
     const date = message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "medium" })
     handledMessages[message.id] = {
       "title": escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? date)) ?? "")?.trim() ?? date,
-      "description": minify(parseHeadings(await MessageASTNodes(parse(escapeHtml(message.content), "extended")) ?? ""), {
+      "description": minify(parseHeadings(await MessageASTNodes(parse(message.content, "extended")) ?? ""), {
         "collapseWhitespace": true
       })
     };
