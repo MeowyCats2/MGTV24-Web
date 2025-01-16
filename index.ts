@@ -253,6 +253,7 @@ const generatePage = (title: string, content: string, meta: string, req: express
 <html lang="en">
     <head>
         <title>${title} - MGTV24 News</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
         <link rel="stylesheet" href="/static/styles.css">
         <link rel="alternate" type="application/rss+xml" title="MGTV24 RSS Feed" href="https://${req.get("host")}/feed.rss">
         ${meta}
@@ -406,10 +407,13 @@ const feeds: Record<string, FeedData> = {
     "id": "1295407859411976286",
     "name": "VIZTV"
   },
-  "finutria": {
-    "id": "1298645364559183955",
-    "name": "FINUTRIA",
-    "aliases": ["icn"]
+  "icn": {
+    "id": "1303766708884082761",
+    "name": "ICN"
+  },
+  "FINUTRIA": {
+    "id": "1315364496268591255",
+    "name": "FINUTRIA"
   },
   "aztv": {
     "id": "1316575386133467207",
