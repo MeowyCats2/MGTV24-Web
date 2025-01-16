@@ -1,0 +1,20 @@
+#archives {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    row-gap: 1rem;
+}
+
+#archives a {
+    display: flex;
+    column-gap: 1rem;
+    color: #aaaaff;
+    align-items: center;
+    font-size: 1.4rem;
+}
+
+#archives a img {
+    width: 64px;
+    height: 64px;
+}

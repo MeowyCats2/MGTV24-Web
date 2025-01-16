@@ -260,7 +260,7 @@ const generatePage = (title: string, content: string, meta: string, req: express
     </head>
     <body>
         <header>
-            <span><img src="/static/MGTV24-News.webp" alt="MGTV24 news logo" class="emoji"> MGTV24 News <img src="/static/MGTV24-News.webp" alt="MGTV24 news logo" class="emoji"></span>
+            <a href="/"><img src="/static/MGTV24-News.webp" alt="MGTV24 news logo" class="emoji"> MGTV24 News <img src="/static/MGTV24-News.webp" alt="MGTV24 news logo" class="emoji"></a>
             <form role="search" action="${req.path.startsWith("/all") ? "/all/search" : (req.params.feed ? "/feeds/" + req.params.feed + "/search" : "/search")}">
                 <input type="search" name="query" placeholder="${req.path.startsWith("/all") ? "Search all stations" : (req.params.feed ? "Search this radio station" : "Search...")}">
                 <input type="submit" value="Search">
@@ -268,13 +268,16 @@ const generatePage = (title: string, content: string, meta: string, req: express
             <nav>
             <ul id="feeds">
             <li>
-              <a href="/"${(req.params.feed || req.path.startsWith("/all")) ? "" : ` class="current" aria-current="page"`}>MGTV</a>
+              <a href="/"${(req.params.feed || req.path.startsWith("/all") || req.path.startsWith("/archives")) ? "" : ` class="current" aria-current="page"`}>MGTV</a>
             </li>
-            ${Object.entries(feeds).map(([feedId, data]) => {
+            ${Object.entries(feeds).filter(([feedId, data]) => !data.archived).map(([feedId, data]) => {
               return `<li><a href="/feeds/${feedId}"${req.params.feed == feedId ? ` class="current" aria-current="page"`: ""}>${data.name}</a></li>`
             }).join("")}
             <li>
               <a href="/all"${req.path.startsWith("/all") ? ` class="current" aria-current="page"` : ""}>All</a>
+            </li>
+            <li>
+              <a href="/archives"${req.path.startsWith("/archives") ? ` class="current" aria-current="page"` : ""}>Archives</a>
             </li>
             </ul>
             </nav>
@@ -384,11 +387,13 @@ await setupMessages()
 type FeedData = {
   id: Snowflake,
   name: string,
+  icon?: string,
   aliases: string[],
   messages: Message[],
   parsed: {createdTimestamp: number, content: string}[],
   rss: Record<string, {title: string, description: string}>,
-  useEmbeds?: boolean
+  useEmbeds?: boolean,
+  archived?: boolean
 }
 const feeds: Record<string, FeedData> = {
   "uatv": {
@@ -405,11 +410,15 @@ const feeds: Record<string, FeedData> = {
   },
   "viztv": {
     "id": "1295407859411976286",
-    "name": "VIZTV"
+    "name": "VIZTV",
+    "icon": "https://cdn.discordapp.com/emojis/1292588813302104124.webp",
+    "archived": true
   },
   "icn": {
     "id": "1303766708884082761",
-    "name": "ICN"
+    "name": "ICN",
+    "icon": "https://cdn.discordapp.com/emojis/1304605035841454100.webp",
+    "archived": true
   },
   "FINUTRIA": {
     "id": "1315364496268591255",
@@ -612,6 +621,17 @@ app.get('/all/feed.rss', async (req, res) => {
  ${req.query.max ? (await generateRSSList(req, allMessages, allRSS)).slice(+(req.query.page ?? 0) * +req.query.max, +(req.query.page ?? 0) * +req.query.max + +req.query.max).join("\n") : (await generateRSSList(req, allMessages, allRSS)).join("\n")}
 </channel>
 </rss>`)
+})
+
+app.get('/archives', async (req, res) => {
+  res.send(generatePage("Archives", `<div id="archives">
+${Object.entries(feeds).filter(feed => feed[1].archived).map(feed => `
+<a href="/feeds/${feed[0]}">${feed[1].icon ? `<img src="${feed[1].icon}">` : ""}${feed[1].name}</a>
+`).join("\n")}
+</div>`, `<meta property="og:title" content="News List">
+<meta property="og:description" content="Start reading MGTV24 news articles online today.">
+<meta property="og:site_name" content="MGTV24 Web &bull; ${parsedMessages.length} articles">
+<link rel="stylesheet" href="/static/archives.css">`, req))
 })
 
 app.get('/robots.txt', async (req, res) => {
