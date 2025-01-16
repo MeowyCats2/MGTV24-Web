@@ -27,7 +27,7 @@ const MessageASTNodes = async (nodes: ASTNode[]) => {
       for (const node of nodes) {
         parsedNodes.push(await MessageSingleASTNode(node as SingleASTNode))
       }
-      return parsedNodes.join("\n")
+      return parsedNodes.join("<!-- split -->")
     } else {
       return await MessageSingleASTNode(nodes)
     }
@@ -286,8 +286,12 @@ const generatePage = (title: string, content: string, meta: string, req: express
         </footer>
     </body>
 </html>`
-const parseHeadings = (content: String) => content.replaceAll(/(\n|^)\s*#\s*#\s(.+?)(<br \/>|$)/gs, "<h2>$2</h2>").replaceAll(/(\n|^)\s*#\s(.+?)(<br \/>|$)/gs, "<h1>$2</h1>")
+const parseHeadings = (content: String) => content
+  .replaceAll(/(<!-- split -->|^)\s*-(<!-- split -->|\s)*#\s(.+?)(<br \/>|$)/gs, `<p class="sub">$3</p>`)
+  .replaceAll(/(<!-- split -->|^)\s*#(<!-- split -->|\s)*#\s(.+?)(<br \/>|$)/gs, "<h2>$3</h2>")
+  .replaceAll(/(<!-- split -->|^)\s*#\s(.+?)(<br \/>|$)/gs, "<h1>$2</h1>")
 const getHeading = (content: String) => content.match(/^#\s(.+?)$/m)?.[1]
+const getSecondaryHeading = (content: String) => content.match(/^##\s(.+?)$/m)?.[1]
 const app = express()
 app.use("/static", express.static("static"))
 
@@ -311,7 +315,7 @@ const generateRSSList = (req: express.Request, messages: Message[], prerendered:
   }
   return handledMessages
 }
-const preRenderRSS = async (sortedMessages: Message[]) => {
+const preRenderRSS = async (sortedMessages: Message[], useEmbeds: boolean) => {
   const handledMessages: Record<string, {
     title: string,
     description: string
@@ -320,14 +324,14 @@ const preRenderRSS = async (sortedMessages: Message[]) => {
     const date = message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "medium" })
     handledMessages[message.id] = {
       "title": escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? date)) ?? "")?.trim() ?? date,
-      "description": minify(parseHeadings(await MessageASTNodes(parse(message.content, "extended")) ?? ""), {
+      "description": minify(parseHeadings(await MessageASTNodes(parse(useEmbeds && message.embeds.length > 0 && message.embeds[0].description ? (message.embeds[0].title ? "# " + message.embeds[0].title + "\n\n" : "") + message.embeds[0].description : message.content, "extended")) ?? ""), {
         "collapseWhitespace": true
-      })
+      }).replaceAll("<!-- split -->", "")
     };
   }
   return handledMessages;
 }
-const generatePostList = async (messages: Message[], linkPrefix: string) => {
+const generatePostList = async (messages: Message[], linkPrefix: string, useEmbeds: boolean) => {
   const handledMessages = []
   for (const message of messages) {
     if (message.content === blacklistedString || message.content === "[Original Message Deleted]") continue;
@@ -335,9 +339,9 @@ const generatePostList = async (messages: Message[], linkPrefix: string) => {
       createdTimestamp: message.createdTimestamp,
       content: `<div class="newsPost">
         <i>Written by <b>${escapeHtml(message.author.displayName)}</b> on <b>${message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "medium" })}</b></i><br />
-        ${minify(parseHeadings(await MessageASTNodes(parse(message.content, "extended")) ?? ""), {
+        ${minify(parseHeadings(await MessageASTNodes(parse(useEmbeds && message.embeds.length > 0 && message.embeds[0].description ? (message.embeds[0].title ? "# " + message.embeds[0].title + "\n\n" : "") + message.embeds[0].description : message.content, "extended")) ?? ""), {
           "collapseWhitespace": true
-        })}<br/><br/>
+        }).replaceAll("<!-- split -->", "")}<br/><br/>
         ${message.attachments.size ? message.attachments.size + " attachments<br />" : ""}
         <a href="${linkPrefix}${message.id}">Link to post for sharing</a>
       </div>`
@@ -370,8 +374,8 @@ const fetchMessages = async (channel: TextChannel) => {
 }
 const setupMessages = async () => {
   sortedMessages = await fetchMessages(mgtvChannel)
-  parsedMessages = await generatePostList(sortedMessages, "/post/")
-  preRenderedRSS = await preRenderRSS(sortedMessages);
+  parsedMessages = await generatePostList(sortedMessages, "/post/", false)
+  preRenderedRSS = await preRenderRSS(sortedMessages, false);
   console.log("done!")
 }
 await setupMessages()
@@ -382,7 +386,8 @@ type FeedData = {
   aliases: string[],
   messages: Message[],
   parsed: {createdTimestamp: number, content: string}[],
-  rss: Record<string, {title: string, description: string}>
+  rss: Record<string, {title: string, description: string}>,
+  useEmbeds?: boolean
 }
 const feeds: Record<string, FeedData> = {
   "uatv": {
@@ -417,14 +422,19 @@ const feeds: Record<string, FeedData> = {
   "balls": {
     "id": "1318542642761699338",
     "name": "BALLS"
+  },
+  "eupraxia": {
+    "id": "1061312488395780106",
+    "name": "Eupraxia",
+    "useEmbeds": true
   }
 } as unknown as Record<string, FeedData>
 const setupFeed = async (feedId: string, data: FeedData) => {
   const channel = await client.channels.fetch(data.id) as TextChannel
   const messages = await fetchMessages(channel)
   data.messages = messages;
-  data.parsed = await generatePostList(messages, "/feeds/" + feedId + "/post/");
-  data.rss = await preRenderRSS(messages);
+  data.parsed = await generatePostList(messages, "/feeds/" + feedId + "/post/", data.useEmbeds ?? false);
+  data.rss = await preRenderRSS(messages, data.useEmbeds ?? false);
 }
 
 for (const [feedId, data] of Object.entries(feeds)) {
@@ -449,7 +459,7 @@ app.get('/post/:post', async (req, res) => {
   res.send(generatePage(escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? "Post")) ?? "") ?? "Post", `<div><i>Written by <b>${message.author.displayName}</b> on <b>${message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "medium" })}</b></i><br />
     ${minify(parseHeadings(postData ?? ""), {
       "collapseWhitespace": true
-    })}
+    }).replaceAll("<!-- split -->", "")}
     ${message.attachments.size > 0 ? `
       <div class="attachmentList">
       ${[...message.attachments.values()].map(attachment => `<img src="${attachment.proxyURL}" alt="${attachment.description ?? attachment.name + " attachment"}" class="attachment">`).join("")}
@@ -507,19 +517,21 @@ app.get('/feeds/:feed/post/:post', async (req, res) => {
   const feed = getFeed(req, res);
   if (!feed) return;
   const message = await (await client.channels.fetch(feed.id) as TextChannel).messages.fetch(req.params.post)
-  const postData = await MessageASTNodes(parse(message.content, "extended"))
-  res.send(generatePage(escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? "Post")) ?? "") ?? "Post", `<div><i>Written by <b>${message.author.displayName}</b> on <b>${message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "medium" })}</b></i><br />
+  const content = feed.useEmbeds && message.embeds.length > 0 && message.embeds[0].description ? (message.embeds[0].title ? "# " + message.embeds[0].title + "\n\n" : "") + message.embeds[0].description : message.content;
+  const postData = await MessageASTNodes(parse(content, "extended"))
+  const heading = getHeading(content) ?? getSecondaryHeading(content)
+  res.send(generatePage(escapeHtml(await MessageASTNodesPlaintext(parse(heading ?? "Post")) ?? "") ?? "Post", `<div><i>Written by <b>${message.author.displayName}</b> on <b>${message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "medium" })}</b></i><br />
     ${minify(parseHeadings(postData ?? ""), {
       "collapseWhitespace": true
-    })}
-    ${message.attachments.size > 0 ? `
+    }).replaceAll("<!-- split -->", "")}
+    ${message.attachments.size > 0 || (feed.useEmbeds && message.embeds.length > 0 && message.embeds[0].image) ? `
       <div class="attachmentList">
-      ${[...message.attachments.values()].map(attachment => `<img src="${attachment.proxyURL}" alt="${attachment.description ?? attachment.name + " attachment"}" class="attachment">`).join("")}
+      ${[...message.attachments.values(), ...(feed.useEmbeds && message.embeds.length > 0 && message.embeds[0].image ? [{...message.embeds[0].image, name: null, description: "Feed image"}] : [])].map(attachment => `<img src="${attachment.proxyURL}" alt="${attachment.description ?? attachment.name + " attachment"}" class="attachment">`).join("")}
       </div>
     ` : ""}</div>
   <h2>Other Recent Posts</h2>
-    ${feed.parsed.slice(0, 50).map(post => post.content).join("")}<br/><a href="/?page=2">See more</a>`, `<meta property="og:title" content="${escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? "Post")) ?? "") ?? "Post"}">
-    <meta property="og:description" content="${escapeHtml(await MessageASTNodesPlaintext(parse(message.content)) ?? "")}">
+    ${feed.parsed.slice(0, 50).map(post => post.content).join("")}<br/><a href="/feeds/${req.params.feed}/?page=2">See more</a>`, `<meta property="og:title" content="${escapeHtml(await MessageASTNodesPlaintext(parse(heading ?? "Post")) ?? "") ?? "Post"}">
+    <meta property="og:description" content="${escapeHtml(await MessageASTNodesPlaintext(parse(content)) ?? "")}">
     <meta property="og:site_name" content="MGTV24 Web &bull; ${parsedMessages.length} articles">
     <link type="application/json+oembed" href="https://${req.get("host")}/post/${req.params.post}/oembed.json" />`, req))
 })

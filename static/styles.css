@@ -24,11 +24,15 @@ header {
 .newsPost {
     border: 1px solid #000022;
     border-radius: 0.2rem;
-    background: #aaaaee;
+    background: #bbbbff;
     padding: 1rem;
     margin: 0.5rem 0;
     align-self: stretch;
     color: initial;
+}
+
+.newsPost a {
+    color: #000088;
 }
 
 .emoji {
@@ -82,4 +86,13 @@ main > div {
 
 #feeds a.current {
     color: white;
+}
+
+.sub {
+    color: #bbb;
+    font-size: 0.9em;
+}
+
+.newsPost .sub {
+    color: #444;
 }
