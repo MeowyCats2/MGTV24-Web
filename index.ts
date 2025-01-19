@@ -147,8 +147,33 @@ const MessageSingleASTNode = async (node: SingleASTNode ): Promise<string | null
         return emoji ? `<img class="emoji" alt="${emoji.name} emoji" src="${emoji.imageURL()}">` : `<img class="emoji" alt="${node.name} emoji" src="${(new CDN()).emoji(node.id)}">`;
   
       case 'timestamp':
-        return node.timestamp + " (" + node.format + ")"
-  
+        let text = "";
+        switch (node.format) {
+          case "R":
+            text = (new Date(node.timestamp * 1000)).toLocaleString('en-US', { timeZone: "ETC/UTC", dateStyle: "medium", timeStyle: "short" }) + " UTC"
+            break;
+          case "D":
+            text = (new Date(node.timestamp * 1000)).toLocaleString('en-US', { timeZone: "ETC/UTC", dateStyle: "medium" }) + " UTC"
+            break;
+          case "d":
+            text = (new Date(node.timestamp * 1000)).toLocaleString('en-US', { timeZone: "ETC/UTC", dateStyle: "short" }) + " UTC"
+            break;
+          case "T":
+            text = (new Date(node.timestamp * 1000)).toLocaleString('en-US', { timeZone: "ETC/UTC", timeStyle: "medium" }) + " UTC"
+            break;
+          case "t":
+            text = (new Date(node.timestamp * 1000)).toLocaleString('en-US', { timeZone: "ETC/UTC", timeStyle: "short" }) + " UTC"
+            break;
+          case "F":
+            text = (new Date(node.timestamp * 1000)).toLocaleString('en-US', { timeZone: "ETC/UTC", dateStyle: "long", timeStyle: "medium" }) + " UTC"
+            break;
+          case "f":
+            text = (new Date(node.timestamp * 1000)).toLocaleString('en-US', { timeZone: "ETC/UTC", dateStyle: "medium", timeStyle: "short" }) + " UTC"
+            break;
+          default:
+            return node.timestamp + " (" + node.format + ")"    
+        }
+        return `<time datetime="${(new Date(node.timestamp * 1000)).toISOString()}" data-format="${node.format}">${text}</time>`
       default: {
         return type + ": " + (typeof node.content === 'string' ? (
           node.content
@@ -256,6 +281,7 @@ const generatePage = (title: string, content: string, meta: string, req: express
         <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
         <link rel="stylesheet" href="/static/styles.css">
         <link rel="alternate" type="application/rss+xml" title="MGTV24 RSS Feed" href="https://${req.get("host")}/feed.rss">
+        <script src="/static/main.js" defer></script>
         ${meta}
     </head>
     <body>

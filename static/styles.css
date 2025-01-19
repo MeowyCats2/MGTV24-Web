@@ -108,3 +108,9 @@ main > div {
 .newsPost .sub {
     color: #444;
 }
+
+time {
+    background: #0000001f;
+    padding: 0.15rem;
+    border-radius: 0.15rem;
+}
