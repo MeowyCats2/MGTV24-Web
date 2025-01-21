@@ -1,3 +1,34 @@
+@font-face {
+    font-family: "Nougat";
+    font-weight: 800;
+    src: url(./Nougat-ExtraBlack-Modified.ttf);
+}
+
+@font-face {
+    font-family: "Gemunu_Libre";
+    font-weight: 300 900;
+    src: url(./Gemunu_Libre/GemunuLibre-VariableFont_wght.ttf);
+}
+
+@font-face {
+    font-family: "Playfair";
+    font-weight: 300 900;
+    src: url(./Playfair/Playfair-VariableFont_opsz\,wdth\,wght.ttf);
+}
+
+@font-face {
+    font-family: "Playfair";
+    font-weight: 300 900;
+    font-style: italic;
+    src: url(./Playfair/Playfair-Italic-VariableFont_opsz\,wdth\,wght.ttf);
+}
+
+@font-face {
+    font-family: "Changa";
+    font-weight: 300 900;
+    src: url(./Changa/Changa-VariableFont_wght.ttf);
+}
+
 body {
     font-family: sans-serif;
     margin: 0;
@@ -32,14 +63,19 @@ header > a {
     text-decoration: none;
 }
 
+header form input {
+    font-family: Playfair;
+}
+
 .newsPost {
     border: 1px solid #000022;
     border-radius: 0.2rem;
-    background: #bbbbff;
+    background: #c7ccfc;
     padding: 1rem;
     margin: 0.5rem 0;
     align-self: stretch;
     color: initial;
+    font-family: Gemunu_Libre;
 }
 
 .newsPost a {
@@ -94,6 +130,7 @@ main > div {
 #feeds a {
     color: #aaa;
     font-size: 1.2rem;
+    font-family: Gemunu_Libre;
 }
 
 #feeds a.current {
@@ -110,7 +147,16 @@ main > div {
 }
 
 time {
-    background: #0000001f;
+    background: #0000000f;
     padding: 0.15rem;
     border-radius: 0.15rem;
+}
+
+h1 {
+    font-family: Nougat;
+}
+
+header > a, h2 {
+    font-family: Changa;
+    font-weight: 800;
 }
