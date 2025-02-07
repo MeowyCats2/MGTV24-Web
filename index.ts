@@ -3,6 +3,7 @@ import "express-async-errors";
 import { parse } from 'discord-markdown-parser';
 import type { ASTNode, SingleASTNode  } from 'simple-markdown';
 import { minify } from "html-minifier";
+import Parser from "rss-parser";
 
 // Require the necessary discord.js classes
 import { Client, Events, GatewayIntentBits, TextChannel, Message, CDN } from "discord.js";
@@ -416,10 +417,12 @@ type FeedData = {
   icon?: string,
   aliases: string[],
   messages: Message[],
-  parsed: {createdTimestamp: number, content: string}[],
+  parsed: {createdTimestamp: number, content: string, guid?: string, contentSnippet?: string, title?: string, raw?: string, url?: string}[],
   rss: Record<string, {title: string, description: string}>,
   useEmbeds?: boolean,
-  archived?: boolean
+  archived?: boolean,
+  source?: string,
+  url?: string
 }
 const feeds: Record<string, FeedData> = {
   "uatv": {
@@ -466,9 +469,37 @@ const feeds: Record<string, FeedData> = {
     "id": "1061312488395780106",
     "name": "Eupraxia",
     "useEmbeds": true
+  },
+  "1-channel": {
+    "name": "1 Channel",
+    "source": "rss",
+    "url": "https://1channelnews.weebly.com/2/feed"
   }
 } as unknown as Record<string, FeedData>
 const setupFeed = async (feedId: string, data: FeedData) => {
+  if (data.source === "rss") {
+    const parser = new Parser();
+    const items = (await parser.parseURL(data.url!)).items;
+    const parsed = [];
+    for (const item of items) {
+      parsed.push({
+        createdTimestamp: (new Date(item.pubDate!)).getTime(),
+        content: `<div class="newsPost">
+        <i>Written on <b>${item.pubDate}</b></i><br />
+        ${item["content:encoded"]}
+        <a href="/feeds/${feedId}/post/${item.guid?.split("/").at(-1)}">Link to post for sharing</a><br />
+        <a href="${item.link}">View original post</a>
+      </div>`,
+        guid: item.guid,
+        contentSnippet: item.contentSnippet,
+        title: item.title,
+        raw: item["content:encoded"],
+        url: item.link
+      })
+    }
+    data.parsed = parsed;
+    return;
+  }
   const channel = await client.channels.fetch(data.id) as TextChannel
   const messages = await fetchMessages(channel)
   data.messages = messages;
@@ -555,6 +586,24 @@ app.get('/feeds/:feed', async (req, res) => {
 app.get('/feeds/:feed/post/:post', async (req, res) => {
   const feed = getFeed(req, res);
   if (!feed) return;
+  if (feed.source === "rss") {
+    await setupFeed(req.params.feed, feed);
+    const post = feed.parsed.find(item => item.guid?.split("/").at(-1) === req.params.post);
+    if (!post) {
+      return void res.status(404).send(generatePage("Post not found", "Post not found.", "", req))
+    }
+    res.send(generatePage(post.title!, `<div>
+        <i>Written on <b>${(new Date(post.createdTimestamp)).toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "medium" })}</b></i><br />
+        <a href="${post.url}">View original post</a>
+        ${post.raw}
+      </div>
+      <h2>Other Recent Posts</h2>
+      ${feed.parsed.slice(0, 50).map(post => post.content).join("")}<br/><a href="/feeds/${req.params.feed}/?page=2">See more</a>`, `<meta property="og:title" content="${post.title}">
+    <meta property="og:description" content="${post.contentSnippet}">
+    <meta property="og:site_name" content="MGTV24 Web &bull; ${parsedMessages.length} articles">
+    <link type="application/json+oembed" href="https://${req.get("host")}/post/${req.params.post}/oembed.json" />`, req))
+    return;
+  }
   const message = await (await client.channels.fetch(feed.id) as TextChannel).messages.fetch(req.params.post)
   const content = feed.useEmbeds && message.embeds.length > 0 && message.embeds[0].description ? (message.embeds[0].title ? "# " + message.embeds[0].title + "\n\n" : "") + message.embeds[0].description : message.content;
   const postData = await MessageASTNodes(parse(content, "extended"))
@@ -577,11 +626,31 @@ app.get('/feeds/:feed/post/:post', async (req, res) => {
 app.get('/feeds/:feed/feed.rss', async (req, res) => {
   const feed = getFeed(req, res);
   if (!feed) return;
+  if (feed.source === "rss") {
+    const rssList = feed.parsed.map(item => `<item>
+      <title>${item.title}</title>
+      <link>https://${req.get("host")}/post/${item.guid?.split("/").at(-1)}</link>
+      <description><![CDATA[${item.raw}]]></description>
+      <pubDate>${(new Date(item.createdTimestamp)).toUTCString()}</pubDate>
+      <guid isPermaLink="false">${item.guid?.split("/").at(-1)}</guid>
+    </item>`);
+    return void res.set("Content-Type", "application/rss+xml").send(`<?xml version="1.0" encoding="UTF-8" ?>
+  <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+   <title>${feed.name}</title>
+   <description>MGTV24-Web news feed</description>
+   <link>https://${req.get("host")}</link>
+   <docs>https://www.rssboard.org/rss-specification</docs>
+   <atom:link href="https://${req.get("host")}/feeds/${req.params.feed}/feed.rss" rel="self" type="application/rss+xml" />
+   ${(req.query.max ? rssList.slice(+(req.query.page ?? 0) * +req.query.max, +(req.query.page ?? 0) * +req.query.max + +req.query.max) : rssList).join("\n")}
+  </channel>
+  </rss>`)
+  }
   res.set("Content-Type", "application/rss+xml").send(`<?xml version="1.0" encoding="UTF-8" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
  <title>${feed.name}</title>
- <description>Relayed from Mijovia.</description>
+ <description>MGTV24-Web news feed</description>
  <link>https://${req.get("host")}</link>
  <docs>https://www.rssboard.org/rss-specification</docs>
  <atom:link href="https://${req.get("host")}/feeds/${req.params.feed}/feed.rss" rel="self" type="application/rss+xml" />
