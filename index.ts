@@ -281,6 +281,7 @@ const generatePage = (title: string, content: string, meta: string, req: express
         <title>${title} - MGTV24 News</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
         <link rel="stylesheet" href="/static/styles.css">
+        <link rel="icon" href="/static/MGTV24-News.webp" />
         <link rel="alternate" type="application/rss+xml" title="MGTV24 RSS Feed" href="https://${req.get("host")}/feed.rss">
         <script src="/static/main.js" defer></script>
         ${meta}
