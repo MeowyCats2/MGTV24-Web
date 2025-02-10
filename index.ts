@@ -792,13 +792,23 @@ app.get('/sitemap-0.xml', async (req, res) => {
   <lastmod>${message.createdAt.toISOString()}</lastmod>
 </url>`);
   for (const [id, feed] of Object.entries(feeds)) {
-    allMessages.push(...feed.messages.map(message => `<url>
-  <loc>https://${req.get("host")}/feed/${id}/post/${message.id}</loc>
+    if (feed.messages) {
+      allMessages.push(...feed.messages.map(message => `<url>
+  <loc>https://${req.get("host")}/feeds/${id}/post/${message.id}</loc>
   <lastmod>${message.createdAt.toISOString()}</lastmod>
 </url>`))
+    } else {
+      allMessages.push(...feed.parsed.map(post => `<url>
+  <loc>https://${req.get("host")}/feeds/${id}/post/${post.guid?.split("/").at(-1)}</loc>
+  <lastmod>${(new Date(post.createdTimestamp)).toISOString()}</lastmod>
+</url>`))
+    }
   }
   await res.set("Content-Type", "text/plain").send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  ${Object.keys(feeds).map(id => `<url>
+https://mgtv24-web.onrender.com/feed/${id}
+</url>`).join("\n")}
   ${allMessages.join("\n")}
 </urlset>`);
 });
