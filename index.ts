@@ -6,7 +6,7 @@ import { minify } from "html-minifier";
 import Parser from "rss-parser";
 
 // Require the necessary discord.js classes
-import { Client, Events, GatewayIntentBits, TextChannel, Message, CDN } from "discord.js";
+import { Client, Events, GatewayIntentBits, TextChannel, Message, CDN, WebhookType } from "discord.js";
 import type { GuildChannel, Role, Collection, Snowflake } from "discord.js";
 
 // Create a new client instance
@@ -552,7 +552,22 @@ app.get('/post/:post', async (req, res) => {
     ${parsedMessages.slice(0, 50).map(post => post.content).join("")}<br/><a href="/?page=2">See more</a>`, `<meta property="og:title" content="${escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? "Post")) ?? "") ?? "Post"}">
     <meta property="og:description" content="${escapeHtml(await MessageASTNodesPlaintext(parse(message.content)) ?? "")}">
     <meta property="og:site_name" content="MGTV24 Web &bull; ${parsedMessages.length} articles">
-    <link type="application/json+oembed" href="https://${req.get("host")}/post/${req.params.post}/oembed.json" />`, req))
+    <link type="application/json+oembed" href="https://${req.get("host")}/post/${req.params.post}/oembed.json" />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "NewsArticle",
+      "headline": "${escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? "MGTV " + await message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "short" }))) ?? "")?.trim() ?? "Post"}",
+      "datePublished": "${message.createdAt.toISOString()}",${message.editedAt ? `
+      "dateModified": "${message.editedAt.toISOString()}",` : ""}
+      "author": [
+        {
+          "@type": "${message.webhookId ? ((await (message.channel as TextChannel).fetchWebhooks()).get(message.webhookId)?.type === WebhookType.ChannelFollower ? "Organization" : "Person") : "Person"}",
+          "name": "${message.author.displayName}"
+        }
+      ]
+    }
+    </script>`, req))
 })
 app.get('/post/:post/oembed.json', async (req, res) => {
   const message = await mgtvChannel.messages.fetch(req.params.post)
@@ -634,7 +649,22 @@ app.get('/feeds/:feed/post/:post', async (req, res) => {
     ${feed.parsed.slice(0, 50).map(post => post.content).join("")}<br/><a href="/feeds/${req.params.feed}/?page=2">See more</a>`, `<meta property="og:title" content="${escapeHtml(await MessageASTNodesPlaintext(parse(heading ?? "Post")) ?? "") ?? "Post"}">
     <meta property="og:description" content="${escapeHtml(await MessageASTNodesPlaintext(parse(content)) ?? "")}">
     <meta property="og:site_name" content="MGTV24 Web &bull; ${parsedMessages.length} articles">
-    <link type="application/json+oembed" href="https://${req.get("host")}/post/${req.params.post}/oembed.json" />`, req))
+    <link type="application/json+oembed" href="https://${req.get("host")}/post/${req.params.post}/oembed.json" />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "NewsArticle",
+      "headline": "${escapeHtml(await MessageASTNodesPlaintext(parse(getHeading(message.content) ?? feed.name + " " + await message.createdAt.toLocaleString('en-US', { timeZone: "Europe/Berlin", dateStyle: "short" }))) ?? "")?.trim() ?? "Post"}",
+      "datePublished": "${message.createdAt.toISOString()}",${message.editedAt ? `
+      "dateModified": "${message.editedAt.toISOString()}",` : ""}
+      "author": [
+        {
+          "@type": "${message.webhookId ? ((await (message.channel as TextChannel).fetchWebhooks()).get(message.webhookId)?.type === WebhookType.ChannelFollower ? "Organization" : "Person") : "Person"}",
+          "name": "${message.author.displayName}"
+        }
+      ]
+    }
+    </script>`, req))
 })
 app.get('/feeds/:feed/feed.rss', async (req, res) => {
   const feed = getFeed(req, res);
