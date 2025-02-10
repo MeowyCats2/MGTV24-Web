@@ -804,7 +804,7 @@ app.get('/sitemap-0.xml', async (req, res) => {
 </url>`))
     }
   }
-  await res.set("Content-Type", "text/plain").send(`<?xml version="1.0" encoding="UTF-8"?>
+  await res.set("Content-Type", "application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   ${Object.keys(feeds).map(id => `<url>
 <loc>https://mgtv24-web.onrender.com/feed/${id}</loc>
