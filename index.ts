@@ -514,7 +514,20 @@ const port = 3000
 app.get('/', async (req, res) => {
   res.send(generatePage("News List", parsedMessages.slice(+(req.query.page ?? 1) * 50 - 50, +(req.query.page ?? 1) * 50).map(post => post.content).join("") + `<br />${+req.query.page! > 1 ? `<a href="/?page=${+req.query.page! - 1}">Previous Page</a> ` : ""}<a href="/?page=${+(req.query.page ?? 1) + 1}">Next Page</a>`, `<meta property="og:title" content="News List">
 <meta property="og:description" content="Start reading MGTV24 news articles online today.">
-<meta property="og:site_name" content="MGTV24 Web &bull; ${parsedMessages.length} articles">`, req))
+<meta property="og:site_name" content="MGTV24 Web &bull; ${parsedMessages.length} articles">
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "NewsMediaOrganization",
+    "url": "https://mgtv24-web.onrender.com/",
+    "logo": "https://mgtv24-web.onrender.com/static/MGTV24-News.webp",
+    "name": "MGTV24 Web",
+    "description": "MGTV24 Web is a service offering online access to GVW community news outlets.",
+    "foundingDate": "2024-09-08",
+    "alternateName": "MGTV Web"
+  }
+</script>
+<meta name="google-site-verification" content="CS2R1mgmbqua1COlvWpTespoQ9_UugLwysgSEsU4buw" />`, req))
 })
 app.get('/search', async (req, res) => {
   if (!req.query.query) return res.redirect("/")
