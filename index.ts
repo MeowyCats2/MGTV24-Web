@@ -776,7 +776,7 @@ app.get('/robots.txt', async (req, res) => {
   await res.set("Content-Type", "text/plain").send(`User-agent: *
 Allow: /
 
-Sitemap: ${req.get("host")}/sitemap-index.xml`);
+Sitemap: https://${req.get("host")}/sitemap-index.xml`);
 });
 app.get('/sitemap-index.xml', async (req, res) => {
   await res.set("Content-Type", "application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>
